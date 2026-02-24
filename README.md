@@ -28,7 +28,19 @@ FastAPI gera automaticamente a documentação interativa da API. Com o serviço 
 
 ## Autenticação
 
-Nenhuma autenticação é exigida nos endpoints da API. O acesso ao FTP é configurado via variáveis de ambiente no servidor.
+Todos os endpoints exigem o header `X-API-Key` com a chave configurada na variável de ambiente `API_KEY`.
+
+```
+X-API-Key: <sua-chave>
+```
+
+Requisições sem o header ou com chave incorreta retornam `401 Unauthorized`:
+
+```json
+{
+  "detail": "API key inválida"
+}
+```
 
 ---
 
@@ -39,6 +51,7 @@ Nenhuma autenticação é exigida nos endpoints da API. O acesso ao FTP é confi
 | `FTP_HOST` | Endereço do servidor FTP         | Sim         |
 | `FTP_USER` | Usuário de login no FTP          | Sim         |
 | `FTP_PASS` | Senha de login no FTP            | Sim         |
+| `API_KEY`  | Chave de autenticação da API     | Sim         |
 
 ---
 
@@ -106,7 +119,8 @@ Sem corpo de requisição.
 #### Exemplo com cURL
 
 ```bash
-curl -X POST http://<host>:8000/executar
+curl -X POST http://<host>:8000/executar \
+  -H "X-API-Key: <sua-chave>"
 ```
 
 #### Exemplo com Python
@@ -114,11 +128,14 @@ curl -X POST http://<host>:8000/executar
 ```python
 import requests
 
-response = requests.post("http://<host>:8000/executar")
+headers = {"X-API-Key": "<sua-chave>"}
+response = requests.post("http://<host>:8000/executar", headers=headers)
 
 if response.status_code == 200:
     print("Rotina executada.")
     # Não garante que um XML esteja disponível — verifique GET /xml em seguida
+elif response.status_code == 401:
+    print("Autenticação falhou. Verifique a API key.")
 elif response.status_code == 500:
     print(f"Falha na execução: {response.json()['detail']}")
 ```
@@ -168,16 +185,12 @@ O corpo da resposta é o conteúdo binário do arquivo XML.
 
 #### Download direto via browser
 
-Acesse a URL abaixo diretamente no navegador. O browser iniciará o download automaticamente com o nome original do arquivo:
-
-```
-http://<host>:8000/xml
-```
+O header `X-API-Key` não pode ser enviado pelo browser diretamente. Use ferramentas como **Postman**, **Insomnia** ou os exemplos abaixo.
 
 #### Exemplo com wget
 
 ```bash
-wget http://<host>:8000/xml
+wget --header="X-API-Key: <sua-chave>" http://<host>:8000/xml
 ```
 
 O arquivo será salvo com o nome original extraído do ZIP.
@@ -185,7 +198,8 @@ O arquivo será salvo com o nome original extraído do ZIP.
 #### Exemplo com cURL
 
 ```bash
-curl -O -J http://<host>:8000/xml
+curl -O -J http://<host>:8000/xml \
+  -H "X-API-Key: <sua-chave>"
 ```
 
 #### Exemplo com Python
@@ -193,13 +207,16 @@ curl -O -J http://<host>:8000/xml
 ```python
 import requests
 
-response = requests.get("http://<host>:8000/xml")
+headers = {"X-API-Key": "<sua-chave>"}
+response = requests.get("http://<host>:8000/xml", headers=headers)
 
 if response.status_code == 200:
     filename = response.headers["Content-Disposition"].split("filename=")[-1].strip('"')
     with open(filename, "wb") as f:
         f.write(response.content)
     print(f"XML salvo em: {filename}")
+elif response.status_code == 401:
+    print("Autenticação falhou. Verifique a API key.")
 elif response.status_code == 404:
     print("XML não disponível. Execute POST /executar para carregar o arquivo.")
 ```
@@ -226,6 +243,7 @@ docker run -p 8000:8000 \
   -e FTP_HOST=ftp.exemplo.com \
   -e FTP_USER=usuario \
   -e FTP_PASS=senha \
+  -e API_KEY=sua-chave-secreta \
   ftp-system-integration
 ```
 
@@ -235,5 +253,5 @@ docker run -p 8000:8000 \
 
 ```bash
 pip install -r requirements.txt
-FTP_HOST=ftp.exemplo.com FTP_USER=usuario FTP_PASS=senha uvicorn app:app --host 0.0.0.0 --port 8000
+FTP_HOST=ftp.exemplo.com FTP_USER=usuario FTP_PASS=senha API_KEY=sua-chave-secreta uvicorn app:app --host 0.0.0.0 --port 8000
 ```

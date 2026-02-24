@@ -3,7 +3,7 @@ import re
 import ftplib
 import pyzipper
 from datetime import datetime
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Header, Depends
 from fastapi.responses import FileResponse
 from apscheduler.schedulers.background import BackgroundScheduler
 
@@ -16,6 +16,8 @@ FTP_USER = os.getenv("FTP_USER")
 FTP_PASS = os.getenv("FTP_PASS")
 FTP_PATH = "/"
 
+API_KEY = os.getenv("API_KEY")
+
 LOCAL_DOWNLOAD_DIR = "downloads"
 LOCAL_EXTRACT_DIR = "extracted"
 
@@ -26,6 +28,15 @@ app = FastAPI()
 scheduler = BackgroundScheduler()
 
 ultimo_xml_extraido = None
+
+
+# ==============================
+# AUTENTICAÇÃO
+# ==============================
+
+def verificar_api_key(x_api_key: str = Header(...)):
+    if x_api_key != API_KEY:
+        raise HTTPException(status_code=401, detail="API key inválida")
 
 
 # ==============================
@@ -121,7 +132,7 @@ scheduler.start()
 # API REST
 # ==============================
 
-@app.post("/executar")
+@app.post("/executar", dependencies=[Depends(verificar_api_key)])
 def executar_manual():
     try:
         rotina_principal()
@@ -130,7 +141,7 @@ def executar_manual():
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.get("/xml")
+@app.get("/xml", dependencies=[Depends(verificar_api_key)])
 def obter_xml():
     if not ultimo_xml_extraido or not os.path.exists(ultimo_xml_extraido):
         raise HTTPException(status_code=404, detail="Nenhum XML disponível")
