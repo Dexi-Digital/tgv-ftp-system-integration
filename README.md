@@ -12,6 +12,20 @@ http://<host>:8000
 
 ---
 
+## Documentação Interativa (Swagger / OpenAPI)
+
+FastAPI gera automaticamente a documentação interativa da API. Com o serviço em execução, acesse:
+
+| Interface  | URL                              | Descrição                                              |
+|------------|----------------------------------|--------------------------------------------------------|
+| Swagger UI | `http://<host>:8000/docs`        | Interface interativa para explorar e testar os endpoints |
+| ReDoc      | `http://<host>:8000/redoc`       | Documentação em formato de leitura                     |
+| OpenAPI JSON | `http://<host>:8000/openapi.json` | Schema bruto em formato OpenAPI 3.x                  |
+
+> O schema OpenAPI pode ser importado em ferramentas como Postman, Insomnia ou qualquer cliente compatível com OpenAPI 3.
+
+---
+
 ## Autenticação
 
 Nenhuma autenticação é exigida nos endpoints da API. O acesso ao FTP é configurado via variáveis de ambiente no servidor.
