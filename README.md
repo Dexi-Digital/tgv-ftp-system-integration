@@ -16,13 +16,22 @@ http://<host>:8000
 
 FastAPI gera automaticamente a documentação interativa da API. Com o serviço em execução, acesse:
 
-| Interface  | URL                              | Descrição                                              |
-|------------|----------------------------------|--------------------------------------------------------|
-| Swagger UI | `http://<host>:8000/docs`        | Interface interativa para explorar e testar os endpoints |
-| ReDoc      | `http://<host>:8000/redoc`       | Documentação em formato de leitura                     |
-| OpenAPI JSON | `http://<host>:8000/openapi.json` | Schema bruto em formato OpenAPI 3.x                  |
+| Interface    | URL                               | Descrição                                                |
+|--------------|-----------------------------------|----------------------------------------------------------|
+| Swagger UI   | `http://<host>:8000/docs`         | Interface interativa para explorar e testar os endpoints |
+| ReDoc        | `http://<host>:8000/redoc`        | Documentação em formato de leitura                       |
+| OpenAPI JSON | `http://<host>:8000/openapi.json` | Schema bruto em formato OpenAPI 3.x                      |
 
 > O schema OpenAPI pode ser importado em ferramentas como Postman, Insomnia ou qualquer cliente compatível com OpenAPI 3.
+
+### Autenticando no Swagger UI
+
+1. Acesse `http://<host>:8000/docs`
+2. Clique no botão **Authorize** (cadeado) no canto superior direito
+3. No campo **X-API-Key**, insira sua chave
+4. Clique em **Authorize** e depois em **Close**
+
+Todos os endpoints executados a partir daí enviarão o header automaticamente.
 
 ---
 

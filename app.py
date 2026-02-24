@@ -3,8 +3,9 @@ import re
 import ftplib
 import pyzipper
 from datetime import datetime
-from fastapi import FastAPI, HTTPException, Header, Depends
+from fastapi import FastAPI, HTTPException, Depends
 from fastapi.responses import FileResponse
+from fastapi.security import APIKeyHeader
 from apscheduler.schedulers.background import BackgroundScheduler
 
 # ==============================
@@ -34,7 +35,9 @@ ultimo_xml_extraido = None
 # AUTENTICAÇÃO
 # ==============================
 
-def verificar_api_key(x_api_key: str = Header(...)):
+api_key_header = APIKeyHeader(name="X-API-Key")
+
+def verificar_api_key(x_api_key: str = Depends(api_key_header)):
     if x_api_key != API_KEY:
         raise HTTPException(status_code=401, detail="API key inválida")
 
