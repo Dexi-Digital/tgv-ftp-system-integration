@@ -1,0 +1,405 @@
+{
+  "name": "TGV - Enviar Documentos para Clientes",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "enviar-documentos",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -800,
+        0
+      ],
+      "id": "c7d1e2f3-a4b5-4c6d-8e9f-100000000001",
+      "name": "webhook_receber",
+      "webhookId": "b8e2f3a4-c5d6-4e7f-9a0b-200000000001"
+    },
+    {
+      "parameters": {
+        "operation": "fromFile",
+        "options": {
+          "headerRow": true
+        }
+      },
+      "type": "n8n-nodes-base.spreadsheetFile",
+      "typeVersion": 2,
+      "position": [
+        -520,
+        0
+      ],
+      "id": "c7d1e2f3-a4b5-4c6d-8e9f-100000000002",
+      "name": "extrair_contatos"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst seen = new Set();\nconst cleaned = [];\n\nfor (const item of items) {\n  let phone = String(\n    item.json.Contato ||\n    item.json.contato ||\n    item.json.telefone ||\n    item.json.Telefone ||\n    ''\n  ).replace(/[^0-9]/g, '');\n\n  // Adiciona prefixo 55 (Brasil) se necessario\n  if (!phone.startsWith('55')) {\n    phone = '55' + phone;\n  }\n\n  // Ignora duplicados e numeros invalidos (min 12 digitos: 55 + DDD + numero)\n  if (seen.has(phone) || phone.length < 12) continue;\n  seen.add(phone);\n\n  // Extrai primeiro nome em Capital Case\n  const nomeCompleto = item.json.NomeCliente || item.json.nome_cliente || '';\n  const primeiroNome = nomeCompleto.split(' ')[0];\n  const nomeFormatado = primeiroNome.charAt(0).toUpperCase() + primeiroNome.slice(1).toLowerCase();\n\n  cleaned.push({\n    json: {\n      telefone: phone,\n      nome_cliente: nomeFormatado,\n      nome_completo: nomeCompleto,\n      empreendimento: item.json.NomeEmpreendimento || item.json.nome_empreendimento || '',\n      unidade: item.json.DescricaoUnidades || item.json.descricao_unidades || ''\n    }\n  });\n}\n\nreturn cleaned;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -240,
+        0
+      ],
+      "id": "c7d1e2f3-a4b5-4c6d-8e9f-100000000003",
+      "name": "limpar_telefones"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        40,
+        0
+      ],
+      "id": "c7d1e2f3-a4b5-4c6d-8e9f-100000000004",
+      "name": "loop_contatos"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "da01-envio-tel",
+              "name": "telefone",
+              "value": "={{ $json.telefone }}",
+              "type": "string"
+            },
+            {
+              "id": "da02-envio-nome",
+              "name": "nome_cliente",
+              "value": "={{ $json.nome_cliente }}",
+              "type": "string"
+            },
+            {
+              "id": "da03-envio-server",
+              "name": "server",
+              "value": "=https://www.avisaapi.com.br/api/",
+              "type": "string"
+            },
+            {
+              "id": "da04-envio-instance",
+              "name": "instance",
+              "value": "=vitor-tgv-cobranca",
+              "type": "string"
+            },
+            {
+              "id": "da05-envio-key",
+              "name": "key",
+              "value": "=EUXlOrfVuBQdYKbPaYM1twH1XrvdPV5pXNm0Zsd00qst0sBDvKBvDvVvdj0G",
+              "type": "string"
+            },
+            {
+              "id": "da06-envio-msg",
+              "name": "mensagem",
+              "value": "=Ol\u00e1 {{ $json.nome_cliente }}, tudo bem?\n\nAqui \u00e9 o Vitor. Estou te encaminhando um material com as atualiza\u00e7\u00f5es sobre obras e informa\u00e7\u00f5es mais recentes sobre o empreendimento.\n\nQualquer d\u00favida, fico \u00e0 disposi\u00e7\u00e3o!",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        320,
+        0
+      ],
+      "id": "c7d1e2f3-a4b5-4c6d-8e9f-100000000005",
+      "name": "dados_envio"
+    },
+    {
+      "parameters": {
+        "jsCode": "function numeroRandomicoIntervalo(min, max) {\n  return Math.floor(Math.random() * (max - min + 1) + min);\n}\n\nfor (const item of items) {\n  item.json.numeroRandomico = numeroRandomicoIntervalo(5, 15);\n}\n\nreturn items;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        600,
+        0
+      ],
+      "id": "c7d1e2f3-a4b5-4c6d-8e9f-100000000006",
+      "name": "gerar_delay"
+    },
+    {
+      "parameters": {
+        "amount": "={{ $json.numeroRandomico }}"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        880,
+        0
+      ],
+      "id": "c7d1e2f3-a4b5-4c6d-8e9f-100000000007",
+      "name": "aguardar",
+      "webhookId": "b8e2f3a4-c5d6-4e7f-9a0b-200000000002"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('dados_envio').first().json.server }}actions/sendDocumentBase64",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('dados_envio').first().json.key }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "=number",
+              "value": "={{ $('dados_envio').first().json.telefone }}"
+            },
+            {
+              "name": "=document",
+              "value": "={{ $('webhook_receber').first().binary.documento.data }}"
+            },
+            {
+              "name": "=fileName",
+              "value": "={{ $('webhook_receber').first().binary.documento.fileName || 'documento.pdf' }}"
+            },
+            {
+              "name": "=message",
+              "value": "={{ $('dados_envio').first().json.mensagem }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1160,
+        0
+      ],
+      "id": "c7d1e2f3-a4b5-4c6d-8e9f-100000000008",
+      "name": "enviar_documento",
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "#confirma-disparo",
+          "mode": "name"
+        },
+        "text": "=\ud83d\udce4 *Envio de Documentos - TGV* \ud83d\udce4\n\n\u2705 *Envio Conclu\u00eddo com Sucesso!*\n* \ud83d\udcc4 *Documento:* `{{ $('webhook_receber').first().binary.documento.fileName || 'documento.pdf' }}`\n* \u23f0 *Hora:* `{{ $now.format('dd/MM/yy - HH:mm') }}`",
+        "otherOptions": {
+          "includeLinkToWorkflow": false
+        }
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        320,
+        -240
+      ],
+      "id": "c7d1e2f3-a4b5-4c6d-8e9f-100000000009",
+      "name": "notificar_sucesso",
+      "webhookId": "b8e2f3a4-c5d6-4e7f-9a0b-200000000003",
+      "credentials": {
+        "slackApi": {
+          "id": "Qp1BJzCEmuFj8WD0",
+          "name": "Slack account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "#numeros_inexistentes",
+          "mode": "name"
+        },
+        "text": "=\ud83d\udce4 *Envio de Documentos - TGV* \ud83d\udce4\n\n\u203c\ufe0f *Erro ao enviar documento* \u203c\ufe0f\n* \ud83d\udcf2 *N\u00famero:* `{{ $('dados_envio').first().json.telefone }}`\n* \ud83d\udc64 *Cliente:* `{{ $('dados_envio').first().json.nome_cliente }}`\n* \u23f0 *Hora:* `{{ $now.format('dd/MM/yy - HH:mm') }}`\n* \u274c *Erro:* `{{ $json.error?.message || $json.error || 'Erro desconhecido' }}`",
+        "otherOptions": {
+          "includeLinkToWorkflow": false
+        }
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        1440,
+        200
+      ],
+      "id": "c7d1e2f3-a4b5-4c6d-8e9f-100000000010",
+      "name": "notificar_erro",
+      "webhookId": "b8e2f3a4-c5d6-4e7f-9a0b-200000000004",
+      "credentials": {
+        "slackApi": {
+          "id": "Qp1BJzCEmuFj8WD0",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"status\": \"sucesso\",\n  \"mensagem\": \"Documentos enviados com sucesso para todos os contatos da planilha.\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        600,
+        -240
+      ],
+      "id": "c7d1e2f3-a4b5-4c6d-8e9f-100000000011",
+      "name": "resposta_sucesso"
+    }
+  ],
+  "connections": {
+    "webhook_receber": {
+      "main": [
+        [
+          {
+            "node": "extrair_contatos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "extrair_contatos": {
+      "main": [
+        [
+          {
+            "node": "limpar_telefones",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "limpar_telefones": {
+      "main": [
+        [
+          {
+            "node": "loop_contatos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "loop_contatos": {
+      "main": [
+        [
+          {
+            "node": "notificar_sucesso",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "dados_envio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "dados_envio": {
+      "main": [
+        [
+          {
+            "node": "gerar_delay",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "gerar_delay": {
+      "main": [
+        [
+          {
+            "node": "aguardar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "aguardar": {
+      "main": [
+        [
+          {
+            "node": "enviar_documento",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "enviar_documento": {
+      "main": [
+        [
+          {
+            "node": "loop_contatos",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "notificar_erro",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "notificar_sucesso": {
+      "main": [
+        [
+          {
+            "node": "resposta_sucesso",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "notificar_erro": {
+      "main": [
+        [
+          {
+            "node": "loop_contatos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 1,
+  "updatedAt": "2026-05-18T14:00:00.000Z",
+  "versionId": "1",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "b42b138afeb75a05434348ffe7f76211796cbce17512eab9d9a97925337324f0"
+  }
+}

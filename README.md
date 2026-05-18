@@ -264,3 +264,88 @@ docker run -p 8000:8000 \
 pip install -r requirements.txt
 FTP_HOST=ftp.exemplo.com FTP_USER=usuario FTP_PASS=senha API_KEY=sua-chave-secreta uvicorn app:app --host 0.0.0.0 --port 8000
 ```
+
+---
+
+## Workflow N8N — Enviar Documentos para Clientes
+
+Workflow N8N para envio em massa de documentos (PDF) via WhatsApp utilizando a Avisa API. Os contatos são extraídos de uma planilha XLSX enviada junto com o documento.
+
+### Arquivo
+
+```
+workflows/enviar_documentos_clientes.json
+```
+
+### Como Importar no N8N
+
+1. Acesse seu N8N → **Workflows** → **Import from File**
+2. Selecione `workflows/enviar_documentos_clientes.json`
+3. Configure a chave da Avisa API no nó **dados_envio** (campo `key`)
+4. Ative o workflow
+
+### Fluxo
+
+```
+Webhook POST /enviar-documentos
+  → Extrair Contatos (parse XLSX)
+  → Limpar Telefones (formatar DDI+DDD+numero, deduplicar)
+  → Loop por Contato
+      → Configurar Dados de Envio (Avisa API)
+      → Delay Aleatório (5-15s entre envios)
+      → Enviar Documento PDF (sendDocumentBase64)
+      → [Erro] → Notificação Slack #numeros_inexistentes
+  → [Concluído] → Notificação Slack #confirma-disparo
+  → Resposta Webhook (sucesso)
+```
+
+### Chamada via Postman / cURL
+
+O webhook recebe `multipart/form-data` com:
+
+| Campo        | Tipo   | Obrigatório | Descrição                                     |
+|--------------|--------|-------------|-----------------------------------------------|
+| `mensagem`   | text   | Não         | Não utilizado (mensagem fixa personalizada com nome do cliente) |
+| `planilha`   | file   | Sim         | Planilha XLSX com coluna `Contato` (telefones) |
+| `documento`  | file   | Sim         | Documento PDF a ser enviado para cada contato  |
+
+#### Exemplo cURL
+
+```bash
+curl -X POST https://<n8n-host>/webhook/enviar-documentos \
+  -F "mensagem=Segue em anexo o cronograma." \
+  -F "planilha=@RelatorioVendas.xlsx" \
+  -F "documento=@Cronograma.pdf"
+```
+
+### Formato da Planilha (XLSX)
+
+A planilha deve conter pelo menos a coluna **Contato** com os telefones dos destinatários:
+
+| NomeEmpreendimento | Contato           | DescricaoUnidades | NomeCliente                |
+|--------------------|-------------------|-------------------|----------------------------|
+| Reserva do Vale    | (34) 99914-9913   | Qd 018 Lt 002    | Agnaldo Rodrigues Oliveira |
+| Reserva do Vale    | (34) 99691-5058   | Qd 018 Lt 011    | Amanda Araujo do Nascimento|
+
+> Os telefones são automaticamente limpos (remoção de parênteses, espaços, hifens) e formatados com prefixo `55` (Brasil). Contatos duplicados são ignorados.
+
+### Mensagem Enviada
+
+Cada contato recebe a seguinte mensagem personalizada (primeiro nome extraído da coluna `NomeCliente`):
+
+> Olá **{Nome}**, tudo bem?
+>
+> Aqui é o Vitor. Estou te encaminhando um material com as atualizações sobre obras e informações mais recentes sobre o empreendimento.
+>
+> Qualquer dúvida, fico à disposição!
+
+### Configuração
+
+A chave da Avisa API e a instância já estão configuradas no nó **dados_envio**. Verifique se correspondem à sua conta antes de ativar.
+
+### Credenciais Necessárias
+
+| Serviço   | Configuração                                  |
+|-----------|-----------------------------------------------|
+| Avisa API | Chave já configurada no nó `dados_envio`     |
+| Slack     | Credencial `Slack account` (id: `Qp1BJzCEmuFj8WD0`) já configurada no N8N |
