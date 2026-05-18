@@ -36,7 +36,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const items = $input.all();\nconst seen = new Set();\nconst cleaned = [];\n\nfor (const item of items) {\n  let phone = String(\n    item.json.Contato ||\n    item.json.contato ||\n    item.json.telefone ||\n    item.json.Telefone ||\n    ''\n  ).replace(/[^0-9]/g, '');\n\n  // Adiciona prefixo 55 (Brasil) se necessario\n  if (!phone.startsWith('55')) {\n    phone = '55' + phone;\n  }\n\n  // Ignora duplicados e numeros invalidos (min 12 digitos: 55 + DDD + numero)\n  if (seen.has(phone) || phone.length < 12) continue;\n  seen.add(phone);\n\n  cleaned.push({\n    json: {\n      telefone: phone,\n      nome_cliente: item.json.NomeCliente || item.json.nome_cliente || '',\n      empreendimento: item.json.NomeEmpreendimento || item.json.nome_empreendimento || '',\n      unidade: item.json.DescricaoUnidades || item.json.descricao_unidades || ''\n    }\n  });\n}\n\nreturn cleaned;"
+        "jsCode": "const items = $input.all();\nconst seen = new Set();\nconst cleaned = [];\n\nfor (const item of items) {\n  let phone = String(\n    item.json.Contato ||\n    item.json.contato ||\n    item.json.telefone ||\n    item.json.Telefone ||\n    ''\n  ).replace(/[^0-9]/g, '');\n\n  // Adiciona prefixo 55 (Brasil) se necessario\n  if (!phone.startsWith('55')) {\n    phone = '55' + phone;\n  }\n\n  // Ignora duplicados e numeros invalidos (min 12 digitos: 55 + DDD + numero)\n  if (seen.has(phone) || phone.length < 12) continue;\n  seen.add(phone);\n\n  // Extrai primeiro nome em Capital Case\n  const nomeCompleto = item.json.NomeCliente || item.json.nome_cliente || '';\n  const primeiroNome = nomeCompleto.split(' ')[0];\n  const nomeFormatado = primeiroNome.charAt(0).toUpperCase() + primeiroNome.slice(1).toLowerCase();\n\n  cleaned.push({\n    json: {\n      telefone: phone,\n      nome_cliente: nomeFormatado,\n      nome_completo: nomeCompleto,\n      empreendimento: item.json.NomeEmpreendimento || item.json.nome_empreendimento || '',\n      unidade: item.json.DescricaoUnidades || item.json.descricao_unidades || ''\n    }\n  });\n}\n\nreturn cleaned;"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -91,13 +91,13 @@
             {
               "id": "da05-envio-key",
               "name": "key",
-              "value": "=SUA_CHAVE_AVISA_API_AQUI",
+              "value": "=EUXlOrfVuBQdYKbPaYM1twH1XrvdPV5pXNm0Zsd00qst0sBDvKBvDvVvdj0G",
               "type": "string"
             },
             {
               "id": "da06-envio-msg",
               "name": "mensagem",
-              "value": "={{ $('webhook_receber').first().json.mensagem || 'Segue documento em anexo.' }}",
+              "value": "=Ol\u00e1 {{ $json.nome_cliente }}, tudo bem?\n\nAqui \u00e9 o Vitor. Estou te encaminhando um material com as atualiza\u00e7\u00f5es sobre obras e informa\u00e7\u00f5es mais recentes sobre o empreendimento.\n\nQualquer d\u00favida, fico \u00e0 disposi\u00e7\u00e3o!",
               "type": "string"
             }
           ]

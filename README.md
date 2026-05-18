@@ -305,7 +305,7 @@ O webhook recebe `multipart/form-data` com:
 
 | Campo        | Tipo   | Obrigatório | Descrição                                     |
 |--------------|--------|-------------|-----------------------------------------------|
-| `mensagem`   | text   | Não         | Texto que acompanha o documento (default: "Segue documento em anexo.") |
+| `mensagem`   | text   | Não         | Não utilizado (mensagem fixa personalizada com nome do cliente) |
 | `planilha`   | file   | Sim         | Planilha XLSX com coluna `Contato` (telefones) |
 | `documento`  | file   | Sim         | Documento PDF a ser enviado para cada contato  |
 
@@ -329,17 +329,23 @@ A planilha deve conter pelo menos a coluna **Contato** com os telefones dos dest
 
 > Os telefones são automaticamente limpos (remoção de parênteses, espaços, hifens) e formatados com prefixo `55` (Brasil). Contatos duplicados são ignorados.
 
-### Configuração Obrigatória
+### Mensagem Enviada
 
-Antes de ativar o workflow, configure a chave da Avisa API:
+Cada contato recebe a seguinte mensagem personalizada (primeiro nome extraído da coluna `NomeCliente`):
 
-1. Abra o nó **dados_envio**
-2. Substitua `SUA_CHAVE_AVISA_API_AQUI` pela sua chave real da Avisa API
-3. Verifique se o campo `instance` corresponde à sua instância (`vitor-tgv-cobranca`)
+> Olá **{Nome}**, tudo bem?
+>
+> Aqui é o Vitor. Estou te encaminhando um material com as atualizações sobre obras e informações mais recentes sobre o empreendimento.
+>
+> Qualquer dúvida, fico à disposição!
+
+### Configuração
+
+A chave da Avisa API e a instância já estão configuradas no nó **dados_envio**. Verifique se correspondem à sua conta antes de ativar.
 
 ### Credenciais Necessárias
 
 | Serviço   | Configuração                                  |
 |-----------|-----------------------------------------------|
-| Avisa API | Chave de API configurada no nó `dados_envio`  |
+| Avisa API | Chave já configurada no nó `dados_envio`     |
 | Slack     | Credencial `Slack account` (id: `Qp1BJzCEmuFj8WD0`) já configurada no N8N |
